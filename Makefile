@@ -2,10 +2,11 @@ INPUTS   := $(wildcard ./build/*.mov)
 OUTPUTS  := $(patsubst ./build/%.mov,./dist/%.mov,$(INPUTS))
 PREVIEWS := $(patsubst ./build/%.mov,./preview/%.mp4,$(INPUTS))
 
+GOP_SIZE := 80
+
 .PHONY : test
 
 all: $(OUTPUTS)
-test: $(OUTPUTS)
 
 ./dist/%.mov : ./build/%.mov
 	ffmpeg -y -i "$<" -c:v copy \
@@ -21,9 +22,10 @@ test: $(OUTPUTS)
 		-b:v 4000k \
 		-c:a libfdk_aac \
 		-b:a 128k \
-		-g 80 -x264opts keyint=80:min-keyint=80:no-scenecut \
+		-g $(GOP_SIZE) -x264opts keyint=$(GOP_SIZE):min-keyint=$(GOP_SIZE):no-scenecut \
 		"$@"
 
-$.test : $(OUTPUTS)
-	ffmpeg -i "$<" -filter:a ebur128 -f null - 2>&1 | egrep ^[\ ]*I:
-
+test :
+	@for f in $(OUTPUTS); do \
+		echo "$$f : $$(./scripts/gaincorrect.py $$f)"; \
+	done;
